@@ -87,3 +87,22 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .recent .meta { color: var(--muted); font-size: 12px; margin-left: 8px; }
 .hint { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
 .result { margin: 24px 0; font-size: 20px; line-height: 1.4; }
+
+/* header + tabs */
+.top { display: flex; justify-content: space-between; align-items: center; }
+.tabs { display: flex; gap: 4px; }
+.tabs button { padding: 6px 10px; color: var(--muted); font-size: 14px; border-radius: 8px; }
+.tabs button.on { color: var(--ink); font-weight: 600; }
+
+/* rows (Home + History) */
+.list { padding: 0; margin: 0; list-style: none; }
+.list li, .recent li { display: block; padding: 0; border-bottom: 1px solid var(--line); }
+.recent .empty { padding: 12px 0; }
+.row { display: flex; justify-content: space-between; width: 100%; padding: 12px 0; text-align: left; }
+.row .in { color: var(--accent); }
+.row .meta { color: var(--muted); font-size: 12px; margin-left: 8px; }
+
+.history { flex: 1; overflow-y: auto; margin-top: 16px; }
+.history h2 { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 20px 0 4px; }
+
+.danger { width: 100%; margin-top: 8px; padding: 12px; color: #dc2626; font-size: 15px; }

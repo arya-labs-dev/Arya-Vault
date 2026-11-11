@@ -1,24 +1,39 @@
 import { useState } from 'react'
-import { addTransaction, MOVES, type MoveKind } from '../db'
+import {
+  addTransaction,
+  deleteTransaction,
+  MOVES,
+  updateTransaction,
+  type MoveKind,
+  type Transaction,
+} from '../db'
 import { toPaise } from '../lib/money'
 import { useAmount } from '../lib/useAmount'
 import { Numpad } from './Numpad'
-import { Amount, Sheet } from './Sheet'
+import { Amount, DeleteButton, Sheet } from './Sheet'
 
 const KINDS = Object.keys(MOVES) as MoveKind[]
 
-export function MoveSheet({ onClose }: { onClose: () => void }) {
-  const { amount, press } = useAmount()
-  const [kind, setKind] = useState<MoveKind>()
+export function MoveSheet({ existing, onClose }: { existing?: Transaction; onClose: () => void }) {
+  const { amount, press } = useAmount(existing ? Math.round(existing.amountPaise / 100) : 0)
+  const [kind, setKind] = useState<MoveKind | undefined>(existing?.moveKind)
 
   async function save() {
     if (kind === undefined || amount <= 0) return
-    await addTransaction({ type: 'move', moveKind: kind, amountPaise: toPaise(amount) })
+    const amountPaise = toPaise(amount)
+    if (existing) await updateTransaction(existing.id, { moveKind: kind, amountPaise })
+    else await addTransaction({ type: 'move', moveKind: kind, amountPaise })
+    onClose()
+  }
+
+  async function remove() {
+    if (!existing) return
+    await deleteTransaction(existing.id)
     onClose()
   }
 
   return (
-    <Sheet title="Move money (not spent, not earned)" onClose={onClose}>
+    <Sheet title={existing ? 'Edit move' : 'Move money (not spent, not earned)'} onClose={onClose}>
       <Amount rupees={amount} />
 
       <div className="chips">
@@ -44,6 +59,7 @@ export function MoveSheet({ onClose }: { onClose: () => void }) {
       >
         Save
       </button>
+      {existing && <DeleteButton onDelete={remove} />}
     </Sheet>
   )
 }

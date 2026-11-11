@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from 'dexie'
+import Dexie, { type EntityTable, type UpdateSpec } from 'dexie'
 
 // All money is stored as integer paise. Never floats.
 
@@ -194,4 +194,20 @@ export async function getOwed(): Promise<{ personId: number; amountPaise: number
     byPerson.set(c.personId, (byPerson.get(c.personId) ?? 0) + c.amountPaise)
   }
   return [...byPerson].map(([personId, amountPaise]) => ({ personId, amountPaise }))
+}
+
+// ---------- edits ----------
+
+export async function updateTransaction(
+  id: number,
+  changes: UpdateSpec<Transaction>,
+): Promise<void> {
+  await db.transactions.update(id, changes)
+}
+
+export async function deleteTransaction(id: number): Promise<void> {
+  await db.transaction('rw', db.transactions, db.contributions, async () => {
+    await db.contributions.where('transactionId').equals(id).delete()
+    await db.transactions.delete(id)
+  })
 }

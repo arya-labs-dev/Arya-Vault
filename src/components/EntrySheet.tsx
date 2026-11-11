@@ -1,18 +1,29 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { addTransaction, db, type Category, type Person, type Pot } from '../db'
+import {
+  addTransaction,
+  db,
+  deleteTransaction,
+  updateTransaction,
+  type Category,
+  type Person,
+  type Pot,
+  type Transaction,
+} from '../db'
 import { toPaise } from '../lib/money'
 import { getLastPot, setLastPot } from '../lib/prefs'
 import { useAmount } from '../lib/useAmount'
 import { Numpad } from './Numpad'
-import { Amount, PotToggle, Sheet } from './Sheet'
+import { Amount, DeleteButton, PotToggle, Sheet } from './Sheet'
 
-type Props = { type: 'in' | 'out'; onClose: () => void }
+type Props = { type: 'in' | 'out'; existing?: Transaction; onClose: () => void }
 
-export function EntrySheet({ type, onClose }: Props) {
-  const { amount, press } = useAmount()
-  const [pot, setPot] = useState<Pot>(getLastPot)
-  const [pickedId, setPickedId] = useState<number>()
+export function EntrySheet({ type, existing, onClose }: Props) {
+  const { amount, press } = useAmount(existing ? Math.round(existing.amountPaise / 100) : 0)
+  const [pot, setPot] = useState<Pot>(() => existing?.pot ?? getLastPot())
+  const [pickedId, setPickedId] = useState<number | undefined>(
+    existing ? (existing.type === 'out' ? existing.categoryId : (existing.personId ?? 0)) : undefined,
+  )
 
   const categories: Category[] = useLiveQuery(
     () => db.categories.orderBy('sortOrder').toArray(),
@@ -31,18 +42,36 @@ export function EntrySheet({ type, onClose }: Props) {
 
   async function save() {
     if (!canSave) return
-    setLastPot(pot)
-    await addTransaction({
-      type,
-      pot,
-      amountPaise: toPaise(amount),
-      ...(type === 'out' ? { categoryId: pickedId } : pickedId ? { personId: pickedId } : {}),
-    })
+    const amountPaise = toPaise(amount)
+    if (existing) {
+      await updateTransaction(
+        existing.id,
+        type === 'out'
+          ? { pot, amountPaise, categoryId: pickedId }
+          : { pot, amountPaise, personId: pickedId || undefined },
+      )
+    } else {
+      setLastPot(pot)
+      await addTransaction({
+        type,
+        pot,
+        amountPaise,
+        ...(type === 'out' ? { categoryId: pickedId } : pickedId ? { personId: pickedId } : {}),
+      })
+    }
     onClose()
   }
 
+  async function remove() {
+    if (!existing) return
+    await deleteTransaction(existing.id)
+    onClose()
+  }
+
+  const title = existing ? 'Edit entry' : type === 'in' ? 'Money in' : 'Money out'
+
   return (
-    <Sheet title={type === 'in' ? 'Money in' : 'Money out'} onClose={onClose}>
+    <Sheet title={title} onClose={onClose}>
       <PotToggle value={pot} onChange={setPot} />
       <Amount rupees={amount} />
 
@@ -64,6 +93,7 @@ export function EntrySheet({ type, onClose }: Props) {
       <button type="button" className="save" disabled={!canSave} onClick={save}>
         Save
       </button>
+      {existing && <DeleteButton onDelete={remove} />}
     </Sheet>
   )
 }

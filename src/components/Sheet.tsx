@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import type { Pot } from '../db'
 import { formatRupees, POT_LABEL, toPaise } from '../lib/money'
 
@@ -46,5 +46,21 @@ export function PotToggle({ value, onChange }: { value: Pot; onChange: (p: Pot) 
         </button>
       ))}
     </div>
+  )
+}
+
+export function DeleteButton({ onDelete }: { onDelete: () => void | Promise<void> }) {
+  const [sure, setSure] = useState(false)
+  return (
+    <button
+      type="button"
+      className="danger"
+      onClick={() => {
+        if (sure) void onDelete()
+        else setSure(true)
+      }}
+    >
+      {sure ? 'Tap again to delete' : 'Delete'}
+    </button>
   )
 }
