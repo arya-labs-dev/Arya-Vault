@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { getBalance, requestPersistence, type Pot, type Transaction } from './db'
 import { formatRupees } from './lib/money'
 import { getRows, type Row } from './lib/rows'
+import { useCounted } from './lib/useCounted'
 import { CountSheet } from './components/CountSheet'
 import { EntrySheet } from './components/EntrySheet'
 import { History } from './components/History'
@@ -30,6 +31,8 @@ export default function App() {
   const cash = useLiveQuery(() => getBalance('cash'), [], 0)
   const upi = useLiveQuery(() => getBalance('upi'), [], 0)
   const recent: Row[] = useLiveQuery(() => getRows(6), [], [])
+  const cashSet = useCounted('cash')
+  const upiSet = useCounted('upi')
 
   useEffect(() => {
     void requestPersistence()
@@ -37,6 +40,10 @@ export default function App() {
 
   const close = () => setSheet(null)
   const edit = (tx: Transaction) => setSheet({ kind: 'edit', tx })
+
+  // next pot that still needs a starting balance (undefined = all set, or still loading)
+  const nextSetup: Pot | undefined =
+    cashSet === undefined || upiSet === undefined ? undefined : !cashSet ? 'cash' : !upiSet ? 'upi' : undefined
 
   return (
     <main className="home">
@@ -58,21 +65,34 @@ export default function App() {
 
       {tab === 'home' && (
         <>
+          {nextSetup && (
+            <section className="welcome">
+              <h2>Start with what you have</h2>
+              <p>Add your current balance. Arya Vault tracks everything from that number.</p>
+              <button type="button" className="welcome-btn" onClick={() => setSheet({ kind: 'count', pot: nextSetup })}>
+                {nextSetup === 'cash' ? 'Set cash in hand' : 'Set UPI balance'}
+              </button>
+              {nextSetup === 'upi' && <small>Cash is set. One more.</small>}
+            </section>
+          )}
+
           <section className="pots">
             <button type="button" className="pot cash" onClick={() => setSheet({ kind: 'count', pot: 'cash' })}>
               <span className="pot-name">Cash</span>
-              <span className="pot-hint">Count it</span>
-              <strong>{formatRupees(cash)}</strong>
+              <span className="pot-hint">{cashSet === false ? 'Set starting balance' : 'Count it'}</span>
+              <strong className={cashSet === false ? 'unset' : undefined}>{cashSet === false ? 'Not set' : formatRupees(cash)}</strong>
             </button>
             <button type="button" className="pot upi" onClick={() => setSheet({ kind: 'count', pot: 'upi' })}>
               <span className="pot-name">UPI</span>
-              <span className="pot-hint">Set balance</span>
-              <strong>{formatRupees(upi)}</strong>
+              <span className="pot-hint">{upiSet === false ? 'Set starting balance' : 'Set balance'}</span>
+              <strong className={upiSet === false ? 'unset' : undefined}>{upiSet === false ? 'Not set' : formatRupees(upi)}</strong>
             </button>
           </section>
-          <p className="total">
-            Total <b>{formatRupees(cash + upi)}</b>
-          </p>
+          {cashSet && upiSet && (
+            <p className="total">
+              Total <b>{formatRupees(cash + upi)}</b>
+            </p>
+          )}
 
           <ul className="recent">
             {recent.length === 0 && <li className="empty">Nothing yet. Log your first one below.</li>}
