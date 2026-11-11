@@ -2,14 +2,23 @@ import Dexie, { type EntityTable } from 'dexie'
 
 // All money is stored as integer paise. Never floats.
 
-export type TxType = 'in' | 'out'
+export type TxType = 'in' | 'out' | 'move'
+export type Pot = 'cash' | 'upi'
+export type MoveKind = 'atm' | 'deposit' | 'to_groww' | 'from_groww'
+
+// How each move shifts the pots (+1 adds, -1 removes, 0 untouched).
+export const MOVES: Record<MoveKind, { label: string; cash: number; upi: number }> = {
+  atm: { label: 'ATM withdrawal', cash: 1, upi: -1 },
+  deposit: { label: 'Cash deposit', cash: -1, upi: 1 },
+  to_groww: { label: 'To Groww', cash: 0, upi: -1 },
+  from_groww: { label: 'From Groww', cash: 0, upi: 1 },
+}
 
 export interface Category {
   id: number
   name: string
   color: string
   isCustom: boolean
-  excludeFromSpend: boolean
   sortOrder: number
 }
 
@@ -21,9 +30,12 @@ export interface Person {
 export interface Transaction {
   id: number
   type: TxType
+  pot?: Pot // in/out only
+  moveKind?: MoveKind // move only
   amountPaise: number
-  categoryId?: number // for 'out'
-  personId?: number // for 'in': who gave you the money
+  categoryId?: number // out
+  personId?: number // in: who gave you the money
+  eventTag?: string
   note?: string
   createdAt: number
 }
@@ -34,13 +46,15 @@ export interface Contribution {
   id: number
   transactionId: number
   personId: number
+  pot: Pot
   amountPaise: number
   receivedAt?: number
 }
 
-// expectedPaise is what the app thought you had; gap = counted - expected.
-export interface CashCount {
+// A balance check for one pot. gap = countedPaise - expectedPaise.
+export interface Count {
   id: number
+  pot: Pot
   countedPaise: number
   expectedPaise: number
   createdAt: number
@@ -53,37 +67,36 @@ export const db = new Dexie('arya-vault') as Dexie & {
   people: EntityTable<Person, 'id'>
   transactions: EntityTable<Transaction, 'id'>
   contributions: EntityTable<Contribution, 'id'>
-  cashCounts: EntityTable<CashCount, 'id'>
+  counts: EntityTable<Count, 'id'>
 }
 
 db.version(1).stores({
   categories: '++id, sortOrder',
   people: '++id, name',
-  transactions: '++id, type, categoryId, personId, createdAt',
+  transactions: '++id, type, pot, categoryId, personId, eventTag, createdAt',
   contributions: '++id, transactionId, personId, receivedAt',
-  cashCounts: '++id, createdAt',
+  counts: '++id, pot, createdAt',
 })
 
-const DEFAULT_CATEGORIES: [string, string, boolean][] = [
-  ['Transport', '#f59e0b', false],
-  ['Food', '#ef4444', false],
-  ['Snacks & Drinks', '#f97316', false],
-  ['College', '#3b82f6', false],
-  ['Family', '#a855f7', false],
-  ['Shopping', '#ec4899', false],
-  ['Fun', '#14b8a6', false],
-  ['Recharge & Bills', '#64748b', false],
-  ['Invested', '#22c55e', true], // moved, not spent
-  ['Other', '#9ca3af', false],
+const DEFAULT_CATEGORIES: [string, string][] = [
+  ['Transport', '#f59e0b'],
+  ['Food', '#ef4444'],
+  ['Friends', '#ec4899'],
+  ['Household', '#64748b'],
+  ['Family', '#a855f7'],
+  ['College', '#3b82f6'],
+  ['Shopping', '#f97316'],
+  ['Fun', '#14b8a6'],
+  ['Recharge & Bills', '#0ea5e9'],
+  ['Other', '#9ca3af'],
 ]
 
 db.on('populate', (tx) => {
   tx.table('categories').bulkAdd(
-    DEFAULT_CATEGORIES.map(([name, color, excludeFromSpend], i) => ({
+    DEFAULT_CATEGORIES.map(([name, color], i) => ({
       name,
       color,
       isCustom: false,
-      excludeFromSpend,
       sortOrder: i,
     })),
   )
@@ -99,7 +112,7 @@ export async function requestPersistence(): Promise<boolean> {
 // ---------- writes ----------
 
 type NewTransaction = Omit<Transaction, 'id' | 'createdAt'> & { createdAt?: number }
-type NewContribution = { personId: number; amountPaise: number; received: boolean }
+type NewContribution = { personId: number; pot: Pot; amountPaise: number; received: boolean }
 
 export async function addTransaction(
   tx: NewTransaction,
@@ -113,6 +126,7 @@ export async function addTransaction(
         contributions.map((c) => ({
           transactionId: id,
           personId: c.personId,
+          pot: c.pot,
           amountPaise: c.amountPaise,
           receivedAt: c.received ? createdAt : undefined,
         })),
@@ -132,39 +146,44 @@ export async function addCustomCategory(name: string, color: string): Promise<nu
     throw new Error(`Max ${MAX_CUSTOM_CATEGORIES} custom categories`)
   }
   const total = await db.categories.count()
-  return db.categories.add({
-    name,
-    color,
-    isCustom: true,
-    excludeFromSpend: false,
-    sortOrder: total,
-  })
+  return db.categories.add({ name, color, isCustom: true, sortOrder: total })
 }
 
 // ---------- reads ----------
 
-// Balance = last cash count + everything that moved after it.
-export async function getBalance(): Promise<number> {
-  const last = await db.cashCounts.orderBy('createdAt').last()
+// How much a transaction moves one pot (signed paise).
+function delta(t: Transaction, pot: Pot): number {
+  if (t.type === 'move') {
+    return t.moveKind ? MOVES[t.moveKind][pot] * t.amountPaise : 0
+  }
+  if (t.pot !== pot) return 0
+  return t.type === 'in' ? t.amountPaise : -t.amountPaise
+}
+
+// Balance = last count of that pot + everything that moved it since.
+export async function getBalance(pot: Pot): Promise<number> {
+  const counts = await db.counts.where('pot').equals(pot).sortBy('createdAt')
+  const last = counts[counts.length - 1]
   const since = last?.createdAt ?? 0
   let balance = last?.countedPaise ?? 0
 
   const txs = await db.transactions.where('createdAt').above(since).toArray()
-  for (const t of txs) balance += t.type === 'in' ? t.amountPaise : -t.amountPaise
+  for (const t of txs) balance += delta(t, pot)
 
-  // Contributions that actually arrived after the count are cash in hand too.
+  // Contributions that arrived after the count are money in hand too.
   const received = await db.contributions.where('receivedAt').above(since).toArray()
-  for (const c of received) balance += c.amountPaise
+  for (const c of received) if (c.pot === pot) balance += c.amountPaise
 
   return balance
 }
 
-// Returns the gap: positive = you have more than expected (kept change),
-// negative = money went missing / unlogged spending.
-export async function recordCashCount(countedPaise: number): Promise<number> {
-  const expectedPaise = await getBalance()
-  await db.cashCounts.add({ countedPaise, expectedPaise, createdAt: Date.now() })
-  return countedPaise - expectedPaise
+// gap > 0: more than expected (kept change). gap < 0: money went missing.
+// first = true when this is the very first count of that pot (just sets the base).
+export async function recordCount(pot: Pot, countedPaise: number) {
+  const hadCount = (await db.counts.where('pot').equals(pot).count()) > 0
+  const expectedPaise = await getBalance(pot)
+  await db.counts.add({ pot, countedPaise, expectedPaise, createdAt: Date.now() })
+  return { gap: countedPaise - expectedPaise, first: !hadCount }
 }
 
 // Pending contributions grouped by person: who owes you what.
@@ -175,47 +194,4 @@ export async function getOwed(): Promise<{ personId: number; amountPaise: number
     byPerson.set(c.personId, (byPerson.get(c.personId) ?? 0) + c.amountPaise)
   }
   return [...byPerson].map(([personId, amountPaise]) => ({ personId, amountPaise }))
-}
-
-// month is 0-based (0 = January), like JS Date.
-export async function getMonthSummary(year: number, month: number) {
-  const start = new Date(year, month, 1).getTime()
-  const end = new Date(year, month + 1, 1).getTime()
-
-  const txs = await db.transactions.where('createdAt').between(start, end, true, false).toArray()
-  const cats = await db.categories.toArray()
-  const catById = new Map(cats.map((c) => [c.id, c]))
-
-  const contribs = await db.contributions
-    .where('transactionId')
-    .anyOf(txs.map((t) => t.id))
-    .toArray()
-  const chippedIn = new Map<number, number>()
-  for (const c of contribs) {
-    chippedIn.set(c.transactionId, (chippedIn.get(c.transactionId) ?? 0) + c.amountPaise)
-  }
-
-  let totalIn = 0
-  let totalSpent = 0 // your real spend: paid minus what others chipped in
-  let totalInvested = 0
-  const byCategory = new Map<number, number>()
-
-  for (const t of txs) {
-    if (t.type === 'in') {
-      totalIn += t.amountPaise
-      continue
-    }
-    const net = t.amountPaise - (chippedIn.get(t.id) ?? 0)
-    const cat = t.categoryId !== undefined ? catById.get(t.categoryId) : undefined
-    if (cat?.excludeFromSpend) {
-      totalInvested += net
-      continue
-    }
-    totalSpent += net
-    if (t.categoryId !== undefined) {
-      byCategory.set(t.categoryId, (byCategory.get(t.categoryId) ?? 0) + net)
-    }
-  }
-
-  return { totalIn, totalSpent, totalInvested, byCategory }
 }
