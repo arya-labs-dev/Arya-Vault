@@ -7,9 +7,10 @@ import { CountSheet } from './components/CountSheet'
 import { EntrySheet } from './components/EntrySheet'
 import { History } from './components/History'
 import { MoveSheet } from './components/MoveSheet'
+import { Month } from './components/Month'
 import { RowItem } from './components/RowItem'
 
-type Tab = 'home' | 'history'
+type Tab = 'home' | 'history' | 'month'
 type SheetState =
   | { kind: 'entry'; type: 'in' | 'out' }
   | { kind: 'move' }
@@ -41,6 +42,9 @@ export default function App() {
           </button>
           <button type="button" className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>
             History
+          </button>
+          <button type="button" className={tab === 'month' ? 'on' : ''} onClick={() => setTab('month')}>
+            Month
           </button>
         </nav>
       </header>
@@ -80,8 +84,10 @@ export default function App() {
             </button>
           </div>
         </>
-      ) : (
+      ) : tab === 'history' ? (
         <History onSelect={edit} />
+      ) : (
+        <Month />
       )}
 
       {sheet?.kind === 'entry' && <EntrySheet type={sheet.type} onClose={close} />}

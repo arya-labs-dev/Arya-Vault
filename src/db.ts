@@ -211,3 +211,19 @@ export async function deleteTransaction(id: number): Promise<void> {
     await db.transactions.delete(id)
   })
 }
+
+// Most recent distinct event tags, for one-tap suggestions.
+export async function getRecentTags(limit = 6): Promise<string[]> {
+  const txs = await db.transactions
+    .orderBy('createdAt')
+    .reverse()
+    .filter((t) => !!t.eventTag)
+    .limit(60)
+    .toArray()
+  const seen = new Set<string>()
+  for (const t of txs) {
+    if (t.eventTag) seen.add(t.eventTag)
+    if (seen.size >= limit) break
+  }
+  return [...seen]
+}

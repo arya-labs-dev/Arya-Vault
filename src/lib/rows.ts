@@ -18,6 +18,6 @@ export async function getRows(limit?: number): Promise<Row[]> {
     const label =
       (tx.type === 'out' ? cats.get(tx.categoryId ?? -1) : people.get(tx.personId ?? -1)) ??
       (tx.type === 'out' ? 'Out' : 'Cash in')
-    return { tx, label, meta: tx.pot ? POT_LABEL[tx.pot] : '' }
+    return { tx, label, meta: [tx.pot ? POT_LABEL[tx.pot] : '', tx.eventTag].filter(Boolean).join(' · ') }
   })
 }

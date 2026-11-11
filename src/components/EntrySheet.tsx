@@ -4,6 +4,7 @@ import {
   addTransaction,
   db,
   deleteTransaction,
+  getRecentTags,
   updateTransaction,
   type Category,
   type Person,
@@ -24,6 +25,8 @@ export function EntrySheet({ type, existing, onClose }: Props) {
   const [pickedId, setPickedId] = useState<number | undefined>(
     existing ? (existing.type === 'out' ? existing.categoryId : (existing.personId ?? 0)) : undefined,
   )
+  const [tag, setTag] = useState(existing?.eventTag ?? '')
+  const [showMore, setShowMore] = useState(Boolean(existing?.eventTag))
 
   const categories: Category[] = useLiveQuery(
     () => db.categories.orderBy('sortOrder').toArray(),
@@ -31,6 +34,7 @@ export function EntrySheet({ type, existing, onClose }: Props) {
     [],
   )
   const people: Person[] = useLiveQuery(() => db.people.toArray(), [], [])
+  const recentTags: string[] = useLiveQuery(() => getRecentTags(), [], [])
 
   // id 0 = "Other" for money in (no specific person)
   const chips =
@@ -43,11 +47,12 @@ export function EntrySheet({ type, existing, onClose }: Props) {
   async function save() {
     if (!canSave) return
     const amountPaise = toPaise(amount)
+    const eventTag = tag.trim() || undefined
     if (existing) {
       await updateTransaction(
         existing.id,
         type === 'out'
-          ? { pot, amountPaise, categoryId: pickedId }
+          ? { pot, amountPaise, categoryId: pickedId, eventTag }
           : { pot, amountPaise, personId: pickedId || undefined },
       )
     } else {
@@ -56,7 +61,11 @@ export function EntrySheet({ type, existing, onClose }: Props) {
         type,
         pot,
         amountPaise,
-        ...(type === 'out' ? { categoryId: pickedId } : pickedId ? { personId: pickedId } : {}),
+        ...(type === 'out'
+          ? { categoryId: pickedId, eventTag }
+          : pickedId
+            ? { personId: pickedId }
+            : {}),
       })
     }
     onClose()
@@ -87,6 +96,32 @@ export function EntrySheet({ type, existing, onClose }: Props) {
           </button>
         ))}
       </div>
+
+      {type === 'out' &&
+        (showMore ? (
+          <div className="more">
+            <input
+              className="field"
+              placeholder="Event (optional), e.g. Trip"
+              value={tag}
+              maxLength={40}
+              onChange={(e) => setTag(e.target.value)}
+            />
+            <div className="chips">
+              {recentTags
+                .filter((t) => t !== tag)
+                .map((t) => (
+                  <button key={t} type="button" className="chip" onClick={() => setTag(t)}>
+                    {t}
+                  </button>
+                ))}
+            </div>
+          </div>
+        ) : (
+          <button type="button" className="more-btn" onClick={() => setShowMore(true)}>
+            + Event
+          </button>
+        ))}
 
       <Numpad onPress={press} />
 

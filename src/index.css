@@ -106,3 +106,23 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .history h2 { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 20px 0 4px; }
 
 .danger { width: 100%; margin-top: 8px; padding: 12px; color: #dc2626; font-size: 15px; }
+
+/* sheet can scroll on small phones */
+.sheet { max-height: 100dvh; overflow-y: auto; }
+.more-btn { color: var(--muted); font-size: 14px; padding: 4px 0 10px; }
+.field { width: 100%; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 12px; background: transparent; color: var(--ink); font: inherit; }
+
+/* month */
+.month { flex: 1; overflow-y: auto; margin-top: 12px; }
+.month-nav { display: flex; justify-content: space-between; align-items: center; }
+.month-nav button { padding: 6px 14px; font-size: 22px; }
+.month-nav button:disabled { opacity: 0.2; }
+.spent { margin: 16px 0 8px; }
+.spent small { color: var(--muted); font-size: 14px; }
+.spent h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.03em; }
+.seg.three { grid-template-columns: repeat(3, 1fr); }
+.lines { padding: 0; margin: 0 0 8px; list-style: none; }
+.lines li { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.lines .pct { color: var(--muted); font-size: 12px; margin-left: 8px; }
+.month h2 { font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 24px 0 4px; }
+.note { color: var(--muted); font-size: 14px; padding: 8px 0; line-height: 1.4; }
