@@ -13,7 +13,7 @@ export default defineConfig({
         short_name: 'Vault',
         description: 'Free, offline expense tracker. No login, no tracking.',
         theme_color: '#fafafa',
-        background_color: '#fafafa',
+        background_color: '#000000',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
