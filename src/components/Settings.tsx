@@ -41,6 +41,7 @@ export function Settings() {
 
   return (
     <section className="settings">
+      <About />
       <div className="danger">
         <h2>Reset everything</h2>
         <p>
