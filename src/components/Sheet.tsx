@@ -4,16 +4,25 @@ import { formatRupees, POT_LABEL, toPaise } from '../lib/money'
 
 export function Sheet({
   title,
+  pot,
   onClose,
   children,
 }: {
   title: string
+  pot?: Pot
   onClose: () => void
   children: ReactNode
 }) {
   return (
     <div className="overlay" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="sheet"
+        data-pot={pot}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="sheet-head">
           <span>{title}</span>
           <button type="button" onClick={onClose}>
@@ -39,7 +48,7 @@ export function PotToggle({ value, onChange }: { value: Pot; onChange: (p: Pot) 
         <button
           key={p}
           type="button"
-          className={p === value ? 'on' : ''}
+          className={p === value ? `${p} on` : p}
           onClick={() => onChange(p)}
         >
           {POT_LABEL[p]}

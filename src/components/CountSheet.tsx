@@ -31,7 +31,7 @@ export function CountSheet({ pot, onClose }: { pot: Pot; onClose: () => void }) 
 
   if (result) {
     return (
-      <Sheet title={title} onClose={onClose}>
+      <Sheet title={title} pot={pot} onClose={onClose}>
         <p className="result">{message(pot, result)}</p>
         <button type="button" className="save" onClick={onClose}>
           Done
@@ -41,7 +41,7 @@ export function CountSheet({ pot, onClose }: { pot: Pot; onClose: () => void }) 
   }
 
   return (
-    <Sheet title={title} onClose={onClose}>
+    <Sheet title={title} pot={pot} onClose={onClose}>
       <Amount rupees={amount} />
       <p className="hint">App thinks: {formatRupees(expected)}</p>
       <Numpad onPress={press} />

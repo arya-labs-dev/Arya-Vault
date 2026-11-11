@@ -18,6 +18,12 @@ type SheetState =
   | { kind: 'edit'; tx: Transaction }
   | null
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'home', label: 'Home' },
+  { id: 'history', label: 'History' },
+  { id: 'month', label: 'Month' },
+]
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [sheet, setSheet] = useState<SheetState>(null)
@@ -37,36 +43,39 @@ export default function App() {
       <header className="top">
         <div className="brand">Arya Vault</div>
         <nav className="tabs">
-          <button type="button" className={tab === 'home' ? 'on' : ''} onClick={() => setTab('home')}>
-            Home
-          </button>
-          <button type="button" className={tab === 'history' ? 'on' : ''} onClick={() => setTab('history')}>
-            History
-          </button>
-          <button type="button" className={tab === 'month' ? 'on' : ''} onClick={() => setTab('month')}>
-            Month
-          </button>
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              className={tab === t.id ? 'on' : ''}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
+          ))}
         </nav>
       </header>
 
-      {tab === 'home' ? (
+      {tab === 'home' && (
         <>
           <section className="pots">
-            <button type="button" className="pot" onClick={() => setSheet({ kind: 'count', pot: 'cash' })}>
-              <small>Cash</small>
+            <button type="button" className="pot cash" onClick={() => setSheet({ kind: 'count', pot: 'cash' })}>
+              <span className="pot-name">Cash</span>
+              <span className="pot-hint">Count it</span>
               <strong>{formatRupees(cash)}</strong>
-              <em>Tap to count</em>
             </button>
-            <button type="button" className="pot" onClick={() => setSheet({ kind: 'count', pot: 'upi' })}>
-              <small>UPI</small>
+            <button type="button" className="pot upi" onClick={() => setSheet({ kind: 'count', pot: 'upi' })}>
+              <span className="pot-name">UPI</span>
+              <span className="pot-hint">Set balance</span>
               <strong>{formatRupees(upi)}</strong>
-              <em>Tap to set</em>
             </button>
           </section>
-          <div className="total">Total {formatRupees(cash + upi)}</div>
+          <p className="total">
+            Total <b>{formatRupees(cash + upi)}</b>
+          </p>
 
           <ul className="recent">
-            {recent.length === 0 && <li className="empty">Nothing yet. Log your first one.</li>}
+            {recent.length === 0 && <li className="empty">Nothing yet. Log your first one below.</li>}
             {recent.map((r) => (
               <RowItem key={r.tx.id} row={r} onClick={() => edit(r.tx)} />
             ))}
@@ -84,11 +93,9 @@ export default function App() {
             </button>
           </div>
         </>
-      ) : tab === 'history' ? (
-        <History onSelect={edit} />
-      ) : (
-        <Month />
       )}
+      {tab === 'history' && <History onSelect={edit} />}
+      {tab === 'month' && <Month />}
 
       {sheet?.kind === 'entry' && <EntrySheet type={sheet.type} onClose={close} />}
       {sheet?.kind === 'move' && <MoveSheet onClose={close} />}

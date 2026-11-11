@@ -80,7 +80,7 @@ export function EntrySheet({ type, existing, onClose }: Props) {
   const title = existing ? 'Edit entry' : type === 'in' ? 'Money in' : 'Money out'
 
   return (
-    <Sheet title={title} onClose={onClose}>
+    <Sheet title={title} pot={pot} onClose={onClose}>
       <PotToggle value={pot} onChange={setPot} />
       <Amount rupees={amount} />
 

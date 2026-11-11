@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { formatRupees } from '../lib/money'
 import { getMonthSummary, type Line, type Mode } from '../lib/summary'
@@ -10,10 +10,14 @@ const MODES: { id: Mode; label: string }[] = [
 ]
 
 function Lines({ lines, total }: { lines: Line[]; total?: number }) {
+  const max = Math.max(...lines.map((l) => l.paise), 1)
   return (
     <ul className="lines">
       {lines.map((l) => (
-        <li key={l.key}>
+        <li
+          key={l.key}
+          style={{ '--w': `${Math.max((l.paise / max) * 100, 2)}%` } as CSSProperties}
+        >
           <span>{l.label}</span>
           <span>
             {formatRupees(l.paise)}
@@ -75,8 +79,8 @@ export function Month() {
       </div>
 
       <section className="spent">
-        <small>Spent</small>
         <h1>{formatRupees(s.totalOut)}</h1>
+        <span>spent</span>
       </section>
 
       <div className="seg three">
@@ -98,19 +102,26 @@ export function Month() {
         <Lines lines={lines} total={mode === 'weeks' ? undefined : s.totalOut} />
       )}
 
-      <h2>Money in · {formatRupees(s.totalIn)}</h2>
+      <h2>
+        <span>Money in</span>
+        <span>{formatRupees(s.totalIn)}</span>
+      </h2>
       {s.inBySource.length === 0 ? (
         <p className="note">Nothing came in.</p>
       ) : (
         <Lines lines={s.inBySource} />
       )}
 
-      <h2>Unaccounted</h2>
+      <h2>
+        <span>Unaccounted</span>
+      </h2>
       <p className="note">{unaccountedText(s.unaccounted, s.countsThisMonth)}</p>
 
       {moved.length > 0 && (
         <>
-          <h2>Moved</h2>
+          <h2>
+            <span>Moved</span>
+          </h2>
           <Lines lines={moved} />
         </>
       )}
