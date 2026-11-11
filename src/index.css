@@ -259,3 +259,58 @@ input { font: inherit; color: inherit; }
   letter-spacing: 0;
   color: var(--muted, #737373);
 }
+
+.settings { display: grid; gap: 16px; margin-top: 16px; }
+.danger {
+  border: 1px solid #dc2626;
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+.danger h2 { margin: 0; font-size: 1.1rem; letter-spacing: -0.01em; color: #dc2626; }
+.danger p, .danger label { margin: 0; font-size: 0.9rem; color: var(--muted, #737373); }
+.danger label b { color: inherit; font-weight: 600; }
+.danger input {
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #e5e5e5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.danger-btn, .danger-ghost {
+  height: 48px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.danger-btn { border: 0; background: #dc2626; color: #fff; }
+.danger-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.danger-ghost { border: 1px solid var(--line, #e5e5e5); background: transparent; color: inherit; }
+
+.danger p, .danger label { font-weight: 400; }
+.danger label b { font-weight: 700; color: #dc2626; }
+
+/* calmer danger zone: red only on the border and the final button */
+.danger { border-color: rgba(220, 38, 38, 0.45); }
+.danger h2 { color: inherit; }
+.danger label b { color: inherit; font-weight: 700; }
+.danger input { color: #111; }
+.danger .danger-btn {
+  background: transparent;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+}
+.danger .danger-btn.solid:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
+}
+.danger .danger-btn:disabled { opacity: 0.4; }
+.danger .danger-ghost { color: var(--muted, #737373); }
+@media (prefers-color-scheme: dark) {
+  .danger input { color: #fafafa; }
+}

@@ -10,8 +10,9 @@ import { History } from './components/History'
 import { MoveSheet } from './components/MoveSheet'
 import { Month } from './components/Month'
 import { RowItem } from './components/RowItem'
+import { Settings } from './components/Settings'
 
-type Tab = 'home' | 'history' | 'month'
+type Tab = 'home' | 'history' | 'month' | 'settings'
 type SheetState =
   | { kind: 'entry'; type: 'in' | 'out' }
   | { kind: 'move' }
@@ -23,6 +24,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'home', label: 'Home' },
   { id: 'history', label: 'History' },
   { id: 'month', label: 'Month' },
+  { id: 'settings', label: 'Settings' },
 ]
 
 export default function App() {
@@ -116,6 +118,7 @@ export default function App() {
       )}
       {tab === 'history' && <History onSelect={edit} />}
       {tab === 'month' && <Month />}
+      {tab === 'settings' && <Settings />}
 
       {sheet?.kind === 'entry' && <EntrySheet type={sheet.type} onClose={close} />}
       {sheet?.kind === 'move' && <MoveSheet onClose={close} />}
