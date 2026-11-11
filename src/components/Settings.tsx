@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
+import { exportCsv } from '../lib/exportCsv'
 
 const PHRASE = 'reset'
 
@@ -8,8 +9,13 @@ export function Settings() {
   const [open, setOpen] = useState(false)
   const [typed, setTyped] = useState('')
   const [busy, setBusy] = useState(false)
+  const [saved, setSaved] = useState<number | null>(null)
   const entries = useLiveQuery(() => db.transactions.count(), [], 0)
   const ready = typed.trim().toLowerCase() === PHRASE
+
+  async function save() {
+    setSaved(await exportCsv())
+  }
 
   async function wipe() {
     if (!ready || busy) return
@@ -29,6 +35,7 @@ export function Settings() {
   function cancel() {
     setOpen(false)
     setTyped('')
+    setSaved(null)
   }
 
   return (
@@ -46,6 +53,19 @@ export function Settings() {
           </button>
         ) : (
           <>
+            {entries > 0 && (
+              <>
+                <label>Save a copy of your data first?</label>
+                <button type="button" className="danger-ghost" onClick={save}>
+                  {saved === null ? 'Download CSV' : 'Download again'}
+                </button>
+                {saved !== null && (
+                  <p>
+                    Saved {saved} {saved === 1 ? 'entry' : 'entries'} to your downloads.
+                  </p>
+                )}
+              </>
+            )}
             <label htmlFor="confirm-reset">
               Type <b>{PHRASE}</b> to confirm
             </label>
@@ -57,10 +77,9 @@ export function Settings() {
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
-              autoFocus
             />
             <button type="button" className="danger-btn solid" disabled={!ready || busy} onClick={wipe}>
-              {busy ? 'Deleting…' : 'Delete everything'}
+              {busy ? 'Resetting…' : 'Reset'}
             </button>
             <button type="button" className="danger-ghost" onClick={cancel}>
               Cancel

@@ -314,3 +314,32 @@ input { font: inherit; color: inherit; }
 @media (prefers-color-scheme: dark) {
   .danger input { color: #fafafa; }
 }
+
+/* settings: tighter corners, quieter red */
+.settings .danger { border-radius: 10px; }
+.settings .danger h2 { color: inherit; }
+.settings .danger input,
+.settings .danger .danger-btn,
+.settings .danger .danger-ghost { border-radius: 8px; }
+.settings .danger .danger-ghost { color: inherit; }
+.settings .danger .danger-ghost:last-child { color: var(--muted, #737373); }
+
+/* settings: red only on the border and the active Reset button */
+.settings .danger h2 { color: inherit; }
+.settings .danger .danger-ghost { color: inherit; }
+.settings .danger .danger-ghost:last-child { color: var(--muted, #737373); }
+.settings .danger .danger-btn:not(.solid) {
+  color: inherit;
+  border-color: var(--line, #e5e5e5);
+}
+.settings .danger .danger-btn.solid:disabled {
+  color: var(--muted, #737373);
+  border-color: var(--line, #e5e5e5);
+  background: transparent;
+  opacity: 0.6;
+}
+.settings .danger .danger-btn.solid:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
