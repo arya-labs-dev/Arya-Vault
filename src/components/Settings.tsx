@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import { exportCsv } from '../lib/exportCsv'
+import { About } from './About'
 
 const PHRASE = 'reset'
 
