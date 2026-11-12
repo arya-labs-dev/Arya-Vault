@@ -227,3 +227,32 @@ export async function getRecentTags(limit = 6): Promise<string[]> {
   }
   return [...seen]
 }
+
+// ---------- people and notes ----------
+
+// Adds a person, or returns the existing one if the name is already there (case-insensitive).
+export async function addPerson(name: string): Promise<number> {
+  const clean = name.trim().slice(0, 30)
+  if (!clean) throw new Error('Name is empty')
+  const existing = await db.people
+    .filter((p) => p.name.toLowerCase() === clean.toLowerCase())
+    .first()
+  if (existing) return existing.id
+  return db.people.add({ name: clean })
+}
+
+// Most recent distinct notes on money-in entries, for one-tap suggestions.
+export async function getRecentNotes(limit = 6): Promise<string[]> {
+  const txs = await db.transactions
+    .orderBy('createdAt')
+    .reverse()
+    .filter((t) => t.type === 'in' && !!t.note)
+    .limit(60)
+    .toArray()
+  const seen = new Set<string>()
+  for (const t of txs) {
+    if (t.note) seen.add(t.note)
+    if (seen.size >= limit) break
+  }
+  return [...seen]
+}

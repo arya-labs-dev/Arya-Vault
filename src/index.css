@@ -391,3 +391,8 @@ input { font: inherit; color: inherit; }
   font-weight: 500;
 }
 .about-link:active { opacity: 0.6; }
+
+.chip.add { border-style: dashed; }
+.add-person { display: flex; gap: 8px; align-items: center; }
+.add-person .field { flex: 1; }
+.add-person .chip:disabled { opacity: 0.4; }

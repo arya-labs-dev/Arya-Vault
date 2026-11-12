@@ -17,6 +17,6 @@ export async function getRows(limit?: number): Promise<Row[]> {
     const label =
       (tx.type === 'out' ? cats.get(tx.categoryId ?? -1) : people.get(tx.personId ?? -1)) ??
       (tx.type === 'out' ? 'Out' : 'Cash in')
-    return { tx, label, tag: tx.eventTag }
+    return { tx, label, tag: tx.type === 'in' ? tx.note : tx.eventTag }
   })
 }
